@@ -16,7 +16,7 @@ def deadzone(number):
         return 0
     return number
 
-def joystick_loop:
+def joystick_loop():
     for event in pygame.event.get():
         if event.type == pygame.JOYDEVICEADDED:
             # A new joystick has been connected
