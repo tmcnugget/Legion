@@ -42,18 +42,6 @@ def buzzer_startup():
     buzzer.on()
     time.sleep(0.5)
     buzzer.off()
-    time.sleep(1)
-    buzzer.on()
-    time.sleep(0.2)
-    buzzer.off
-    time.sleep(0.2)
-    buzzer.on()
-    time.sleep(0.2)
-    buzzer.off
-    time.sleep(0.2)
-    buzzer.on()
-    time.sleep(0.2)
-    buzzer.off
 
 # -----|>STARTUP SCRIPT<|-----
 def setup():
