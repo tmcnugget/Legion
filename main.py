@@ -33,19 +33,18 @@ def wheel(pos):
         pos -= 170
         return (0, pos * 3, 255 - pos * 3)
 
-# Main loop
-try:
-    while True:
-        rainbow_cycle(0.005)  # Adjust speed
-except KeyboardInterrupt:
-    pixels.fill((0, 0, 0))  # Turn off LEDs
-    pixels.show()
-
 # -----|>BUZZER SCRIPT<|-----
 from gpiozero import Buzzer
 
 buzzer = Buzzer(17)
 
-buzzer.on
-time.sleep(1)
-buzzer.off
+# -----|>MAIN LOOP<|-----
+try:
+    while True:
+        buzzer.on()
+        time.sleep(1)
+        buzzer.off()
+        rainbow_cycle(0.005)  # Adjust speed
+except KeyboardInterrupt:
+    pixels.fill((0, 0, 0))  # Turn off LEDs
+    pixels.show()
