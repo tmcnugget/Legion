@@ -1,4 +1,4 @@
-# MAIN IMPORTS
+# -----|>MAIN IMPORTS<|-----
 import time
 
 # -----|>LED SCRIPT<|-----
@@ -38,13 +38,41 @@ from gpiozero import Buzzer
 
 buzzer = Buzzer(17)
 
-# -----|>MAIN LOOP<|-----
-try:
-    while True:
-        buzzer.on()
-        time.sleep(1)
-        buzzer.off()
-        rainbow_cycle(0.005)  # Adjust speed
-except KeyboardInterrupt:
-    pixels.fill((0, 0, 0))  # Turn off LEDs
+def buzzer_startup():
+    buzzer.on()
+    time.sleep(0.5)
+    buzzer.off()
+    time.sleep(1)
+    buzzer.on()
+    time.sleep(0.1)
+    buzzer.off
+    time.sleep(0.1)
+    buzzer.on()
+    time.sleep(0.1)
+    buzzer.off
+    time.sleep(0.1)
+    buzzer.on()
+    time.sleep(0.1)
+    buzzer.off
+    time.sleep(0.1)
+
+# -----|>STARTUP SCRIPT<|-----
+def setup():
+    buzzer_startup()
+
+# -----|>LOOP SCRIPT<|-----
+def loop():
+    rainbow_cycle(0.005)
+
+# -----|>SHUTDOWN SCRIPT<|-----
+def cleanup():
+    pixels.fill((0, 0, 0))
     pixels.show()
+
+# -----|>EVENT TRIGGERS<|-----
+try:
+    setup()
+    while True:
+        loop()
+except KeyboardInterrupt:
+    cleanup()
