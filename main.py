@@ -1,6 +1,42 @@
 # -----|>MAIN IMPORTS<|-----
 import time
 
+# -----|>JOYSTICK SCRIPT<|-----
+import pygame
+
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+
+pygame.init()
+pygame.joystick.init()
+
+joysticks = {}
+
+def deadzone(number):
+    if abs(number) < 0.005:
+        return 0
+    return number
+
+def joystick_loop:
+    for event in pygame.event.get():
+        if event.type == pygame.JOYDEVICEADDED:
+            # A new joystick has been connected
+            joy = pygame.joystick.Joystick(event.device_index)
+            joysticks[joy.get_instance_id()] = joy
+            print(f"Joystick {joy.get_instance_id()} connected")
+
+        if event.type == pygame.JOYDEVICEREMOVED:
+            # A joystick has been disconnected
+            del joysticks[event.instance_id]
+            print(f"Joystick {event.instance_id} disconnected")
+
+    for joystick in joysticks.values():
+        x1 = deadzone(round(joystick.get_axis(0), 3)) / 2 * speed # Left/Right
+        y = deadzone(round(joystick.get_axis(1), 3)) / 2 * speed # Up/Down
+        x2 = -deadzone(round(joystick.get_axis(2), 3)) / 2 * speed # Rotate
+
+        zl = joystick.get_button(6)
+        zr = joystick.get_button(7)
+
 # -----|>LED SCRIPT<|-----
 import board
 import neopixel
@@ -50,6 +86,7 @@ def setup():
 # -----|>LOOP SCRIPT<|-----
 def loop():
     rainbow_cycle(0.005)
+    joystick_loop()
 
 # -----|>SHUTDOWN SCRIPT<|-----
 def cleanup():
