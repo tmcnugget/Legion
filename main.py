@@ -1,10 +1,6 @@
 import math
 import time
-from mpu6050 import mpu6050
 import smbus
-
-# Initialize MPU6050 sensor
-sensor = mpu6050(0x68)
 
 def ik(x, y, z, L1=72, L2=72):
     """
@@ -22,17 +18,26 @@ def ik(x, y, z, L1=72, L2=72):
     
     cos_hip_lift = (L1**2 + d**2 - L2**2) / (2 * L1 * d)
     theta_hip_lift = math.acos(cos_hip_lift) + math.atan2(z, proj_x)
+
+    theta_hip_rotation = max(0, min(270, theta_hip_rotation))
+    theta_hip_lift = max(0, min(270, theta_hip_lift))
+    theta_knee = max(0, min(270, theta_knee))
     
     return math.degrees(theta_hip_rotation), math.degrees(theta_hip_lift), math.degrees(theta_knee)
 
-def read_mpu():
+def read_mpu(bus, address=0x68):
     """
-    Read accelerometer and gyroscope data using the mpu6050 library.
+    Read accelerometer and gyroscope data from the MPU6050 sensor.
     """
-    data = sensor.get_all_data()
+    bus.write_byte_data(address, 0x6B, 0)  # Wake up MPU6050
     
-    accel_x, accel_y, accel_z = data[0]  # Accelerometer values (ax, ay, az)
-    gyro_x, gyro_y, gyro_z = data[1]     # Gyroscope values (gx, gy, gz)
+    accel_x = (bus.read_byte_data(address, 0x3B) << 8) | bus.read_byte_data(address, 0x3C)
+    accel_y = (bus.read_byte_data(address, 0x3D) << 8) | bus.read_byte_data(address, 0x3E)
+    accel_z = (bus.read_byte_data(address, 0x3F) << 8) | bus.read_byte_data(address, 0x40)
+    
+    gyro_x = (bus.read_byte_data(address, 0x43) << 8) | bus.read_byte_data(address, 0x44)
+    gyro_y = (bus.read_byte_data(address, 0x45) << 8) | bus.read_byte_data(address, 0x46)
+    gyro_z = (bus.read_byte_data(address, 0x47) << 8) | bus.read_byte_data(address, 0x48)
     
     return {
         "accel": (accel_x, accel_y, accel_z),
@@ -79,14 +84,14 @@ def trot(step_len, step_h, cycle_t, bus):
     legs = ['FL', 'BR', 'FR', 'BL']
     
     for phase in range(4):
-        mpu_data = read_mpu()  # Get sensor data
+        mpu_data = read_mpu(bus)
         
         for i, leg in enumerate(legs):
             if (phase % 2 == 0 and i % 2 == 0) or (phase % 2 == 1 and i % 2 == 1):
                 x, y, z = trot_pos[phase]
-                x, y, z = adjust_gait(mpu_data, x, y, z)  # Adjust based on gyro
-                angles = ik(x, y, z)  # Calculate joint angles
-                update_servos(leg, angles)  # Update servo positions
+                x, y, z = adjust_gait(mpu_data, x, y, z)
+                angles = ik(x, y, z)
+                update_servos(leg, angles)
                 print(f"{leg} -> Hip Rotation: {angles[0]:.2f}, Hip Lift: {angles[1]:.2f}, Knee: {angles[2]:.2f}")
         time.sleep(time_step)
 
