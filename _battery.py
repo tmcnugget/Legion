@@ -95,9 +95,7 @@ def draw_bar(value, start_col):
 
 def display_data(input_string):
     # Parse the input string
-    values = input_string.strip('()').split(',')
-    value1 = float(values[0].strip())
-    value2 = float(values[1].strip())
+    value1, value2 = input_data
 
     # Clear Unicorn HAT screen
     unicorn.clear()
