@@ -71,50 +71,12 @@ class ADC:
         battery2 = round(val1 / 255 * 5 * 3, 2)
         return battery1, battery2
 
-import unicornhat as unicorn
-
-# Initialize Unicorn HAT
-unicorn.set_layout(unicorn.PHAT)
-unicorn.rotation(0)
-unicorn.brightness(1.0)
-
-def color_gradient(value):
-    # Map the value to a range from 0 to 255 for red and green channels
-    value = max(7.00, min(8.00, value))  # Clamp value between 7.00 and 8.00
-    green = int((8.00 - value) * 255)  # Green goes up as value decreases
-    red = int((value - 7.00) * 255)    # Red goes up as value increases
-    return (red, green, 0)
-
-def draw_bar(value, start_col):
-    # Convert value to height for the bar, based on the range 7.00 to 8.00
-    height = int(((value - 7.00) / 1.00) * 8)  # Map to 0 to 8 rows
-    for row in range(8):
-        color = color_gradient(value) if row < height else (0, 0, 0)  # Color for bar or black if below height
-        for col in range(start_col, start_col + 3):  # Draw a bar 3 columns wide
-            unicorn.set_pixel(col, row, *color)
-
-def display_data(input_string):
-    # Parse the input string
-    value1, value2 = input_data
-
-    # Clear Unicorn HAT screen
-    unicorn.clear()
-
-    # Draw the first bar (left half)
-    draw_bar(value1, 0)
-    # Draw the second bar (right half)
-    draw_bar(value2, 3)
-
-    # Update the display
-    unicorn.show()
-
 if __name__ == '__main__':
     adc = ADC()
     try:
         while True:
             input_data = adc.batteryPower()
             print(input_data)
-            display_data(input_data)
             time.sleep(0.1)
     except KeyboardInterrupt:
         adc.adc.close()
