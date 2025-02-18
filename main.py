@@ -89,7 +89,7 @@ def servo(channel, angle):
     if channel <= 15:
         pca1.channels[channel].duty_cycle = int((pulse / 20000) * 0xFFFF)
     else:
-        pca2.channels[channel + 16].duty_cycle = int((pulse / 20000) * 0xFFFF)
+        pca2.channels[channel - 16].duty_cycle = int((pulse / 20000) * 0xFFFF)
 
 def update_servos(leg, angles):
     """
