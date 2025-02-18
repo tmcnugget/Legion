@@ -79,8 +79,8 @@ def adjust_gait(mpu_data, x, y, z):
     Adjust gait based on MPU6050 sensor data.
     """
     gyro_x, gyro_y, gyro_z = mpu_data["gyro"]
-    correction_x = gyro_x * 0.0001  # Small correction factor
-    correction_y = gyro_y * 0.0001
+    correction_x = gyro_x * 0.01  # Small correction factor
+    correction_y = gyro_y * 0.01
     
     return x + correction_x, y + correction_y, z
 
@@ -149,22 +149,55 @@ def trot(step_len, step_h, cycle_t, bus):
                 update_servos(leg, angles)
                 print(f"{leg} -> Hip Rotation: {angles[0]:.2f}, Hip Lift: {angles[1]:.2f}, Knee: {angles[2]:.2f}")
         time.sleep(time_step)
-
+        
 def sit():
     """
-    Make the robot sit by adjusting leg angles.
+    Move the quadruped into a sitting position by lowering the back legs 
+    while keeping the front legs more extended.
     """
-    sit_pos = {
-        "FL": (0, 0, -50),  # Front left leg slightly bent
-        "FR": (0, 0, -50),  # Front right leg slightly bent
-        "BL": (0, 0, -30),  # Back left leg more bent
-        "BR": (0, 0, -30),  # Back right leg more bent
-    }
+    # Front legs more upright
+    front_leg_angles = ik(0, 0, -60)  # Adjust z for desired upright posture
+    update_servos("FL", front_leg_angles)
+    update_servos("FR", front_leg_angles)
     
-    for leg, pos in sit_pos.items():
-        angles = ik(*pos)
-        update_servos(leg, angles)
-        print(f"{leg} -> Hip Rotation: {angles[0]:.2f}, Hip Lift: {angles[1]:.2f}, Knee: {angles[2]:.2f}")
+    # Back legs bent to simulate sitting
+    back_leg_angles = ik(0, 0, -30)  # Adjust z for a more bent position
+    update_servos("BL", back_leg_angles)
+    update_servos("BR", back_leg_angles)
+
+    print("Quadruped is now sitting.")
+
+def jump():
+    crouch_angles = ik(0, 0, -60)
+    jump_angles = ik(0, 0, 60)
+    brace_angles = ik(0, 0, 0)
+    impact_angles = ik(0, 0, -30)
+    return_angles = ik(0, 0, 0)
+    
+    update_servos("FL", crouch_angles)
+    update_servos("FR", crouch_angles)
+    update_servos("BL", crouch_angles)
+    update_servos("BR", crouch_angles)
+    time.sleep(0.3)
+    update_servos("FL", jump_angles)
+    update_servos("FR", jump_angles)
+    update_servos("BL", jump_angles)
+    update_servos("BR", jump_angles)
+    time.sleep(0.1)
+    update_servos("FL", brace_angles)
+    update_servos("FR", brace_angles)
+    update_servos("BL", brace_angles)
+    update_servos("BR", brace_angles)
+    time.sleep(0.2)
+    update_servos("FL", impact_angles)
+    update_servos("FR", impact_angles)
+    update_servos("BL", impact_angles)
+    update_servos("BR", impact_angles)
+    timp.sleep(0.7)
+    update_servos("FL", return_angles)
+    update_servos("FR", return_angles)
+    update_servos("BL", return_angles)
+    update_servos("BR", return_angles)
 
 # Define servo positions
 global l1j1, l1j2, l1j3, l2j1, l2j2, l2j3, l3j1, l3j2, l3j3, l4j1, l4j2, l4j3
@@ -179,3 +212,4 @@ step_h = 15
 cycle_t = 1.0
 #trot(step_len, step_h, cycle_t, bus)
 sit()
+jump()
