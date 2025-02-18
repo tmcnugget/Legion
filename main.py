@@ -177,5 +177,5 @@ bus = smbus.SMBus(1)
 step_len = 30
 step_h = 15
 cycle_t = 1.0
-trot(step_len, step_h, cycle_t, bus)
+#trot(step_len, step_h, cycle_t, bus)
 sit()
