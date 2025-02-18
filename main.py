@@ -49,9 +49,9 @@ def ik(x, y, z, L1=72, L2=72):
     cos_hip_lift = (L1**2 + d**2 - L2**2) / (2 * L1 * d)
     theta_hip_lift = math.acos(cos_hip_lift) + math.atan2(z, proj_x)
 
-    theta_hip_rotation = max(0, min(270, theta_hip_rotation))
-    theta_hip_lift = max(0, min(270, theta_hip_lift))
-    theta_knee = max(0, min(270, theta_knee))
+    theta_hip_rotation = max(0, min(180, theta_hip_rotation))
+    theta_hip_lift = max(0, min(180, theta_hip_lift))
+    theta_knee = max(0, min(180, theta_knee))
     
     return math.degrees(theta_hip_rotation), math.degrees(theta_hip_lift), math.degrees(theta_knee)
 
@@ -89,7 +89,7 @@ def servo(channel, angle):
     if channel <= 15:
         pca1.channels[channel].duty_cycle = int((pulse / 20000) * 0xFFFF)
     else:
-        pca2.channels[channel].duty_cycle = int((pulse / 20000) * 0xFFFF)
+        pca2.channels[channel + 16].duty_cycle = int((pulse / 20000) * 0xFFFF)
 
 def update_servos(leg, angles):
     """
