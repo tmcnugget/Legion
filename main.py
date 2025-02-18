@@ -1,6 +1,36 @@
 import math
 import time
 import smbus
+from board import SCL, SDA
+import busio
+from adafruit_pca9685 import PCA9685
+
+# Initialize I2C bus
+i2c = busio.I2C(SCL, SDA)
+
+# Set custom I2C addresses
+I2C_ADDRESS_1 = 0x40  # First PCA9685
+I2C_ADDRESS_2 = 0x41  # Second PCA9685
+
+# Initialize PCA9685 devices
+pca1 = PCA9685(i2c, address=I2C_ADDRESS_1)
+pca2 = PCA9685(i2c, address=I2C_ADDRESS_2)
+pca1.frequency = 50  # MG996R operates at 50Hz
+pca2.frequency = 50
+
+# Servo pulse range
+MIN_PULSE = 500   # Min pulse width
+MAX_PULSE = 2500  # Max pulse width
+ANGLE_RANGE = 180 # Max servo angle range
+
+def angle_to_pulse(angle):
+    return int(MIN_PULSE + (angle / ANGLE_RANGE) * (MAX_PULSE - MIN_PULSE))
+
+def twos_complement(value):
+    """Convert raw two's complement data to signed integer"""
+    if value & (1 << 15):  # Check if the sign bit is set
+        value -= 1 << 16
+    return value
 
 def ik(x, y, z, L1=72, L2=72):
     """
@@ -31,13 +61,13 @@ def read_mpu(bus, address=0x68):
     """
     bus.write_byte_data(address, 0x6B, 0)  # Wake up MPU6050
     
-    accel_x = (bus.read_byte_data(address, 0x3B) << 8) | bus.read_byte_data(address, 0x3C)
-    accel_y = (bus.read_byte_data(address, 0x3D) << 8) | bus.read_byte_data(address, 0x3E)
-    accel_z = (bus.read_byte_data(address, 0x3F) << 8) | bus.read_byte_data(address, 0x40)
+    accel_x = twos_complement((bus.read_byte_data(address, 0x3B) << 8) | bus.read_byte_data(address, 0x3C))
+    accel_y = twos_complement((bus.read_byte_data(address, 0x3D) << 8) | bus.read_byte_data(address, 0x3E))
+    accel_z = twos_complement((bus.read_byte_data(address, 0x3F) << 8) | bus.read_byte_data(address, 0x40))
     
-    gyro_x = (bus.read_byte_data(address, 0x43) << 8) | bus.read_byte_data(address, 0x44)
-    gyro_y = (bus.read_byte_data(address, 0x45) << 8) | bus.read_byte_data(address, 0x46)
-    gyro_z = (bus.read_byte_data(address, 0x47) << 8) | bus.read_byte_data(address, 0x48)
+    gyro_x = twos_complement((bus.read_byte_data(address, 0x43) << 8) | bus.read_byte_data(address, 0x44))
+    gyro_y = twos_complement((bus.read_byte_data(address, 0x45) << 8) | bus.read_byte_data(address, 0x46))
+    gyro_z = twos_complement((bus.read_byte_data(address, 0x47) << 8) | bus.read_byte_data(address, 0x48))
     
     return {
         "accel": (accel_x, accel_y, accel_z),
@@ -54,6 +84,13 @@ def adjust_gait(mpu_data, x, y, z):
     
     return x + correction_x, y + correction_y, z
 
+def servo(channel, angle):
+    pulse = angle_to_pulse(angle)
+    if channel <= 15:
+        pca1.channels[channel].duty_cycle = int((pulse / 20000) * 0xFFFF)
+    else:
+        pca2.channels[channel].duty_cycle = int((pulse / 20000) * 0xFFFF)
+
 def update_servos(leg, angles):
     """
     Update the servo positions based on calculated angles.
@@ -68,6 +105,24 @@ def update_servos(leg, angles):
         l3j1, l3j2, l3j3 = angles
     elif leg == "BR":
         l4j1, l4j2, l4j3 = angles
+
+    l1j1 = min(max(l1j1, 45), 135)
+    l2j1 = min(max(l2j1, 45), 135) 
+    l3j1 = min(max(l3j1, 45), 135) 
+    l4j1 = min(max(l4j1, 45), 135)
+
+    servo(15, l1j1)
+    servo(14, l1j2)
+    servo(13, l2j3)
+    servo(12, l2j1)
+    servo(11, l2j2)
+    servo(10, l2j3)
+    servo(9, l3j1)
+    servo(8, l3j2)
+    servo(31, l3j3)
+    servo(22, l4j1)
+    servo(23, l4j2)
+    servo(27, l4j3)
 
 def trot(step_len, step_h, cycle_t, bus):
     """
