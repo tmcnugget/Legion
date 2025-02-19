@@ -81,7 +81,7 @@ unicorn.clear()
 
 def scaleRGB(value):
     # Normalize to the range [0, 1] where 7.2 maps to 0 and 8.2 maps to 1
-    normalized = (value - 7.2) / (8.2 - 7.2)
+    normalized = (value - 7.2) / (8.5 - 7.2)
     # Scale to 0-255 and convert to int
     return int(round(normalized * 255))
 
