@@ -170,9 +170,9 @@ def sit():
 def jump():
     crouch_angles = ik(0, 0, -60)
     jump_angles = ik(0, 0, 60)
-    brace_angles = ik(0, 0, 0)
+    brace_angles = ik(0, 0, 1)
     impact_angles = ik(0, 0, -30)
-    return_angles = ik(0, 0, 0)
+    return_angles = ik(0, 0, 1)
     
     update_servos("FL", crouch_angles)
     update_servos("FR", crouch_angles)
