@@ -56,27 +56,71 @@ class ADC:
                   "Program Exit. \n")
             exit(-1)
 
-    def batteryValue(self, chn):
+    def getA(self, chn): # getA stands for get analogue
         return self.adc.analogRead(chn)
 
-    def batteryPower(self):
+    def getV(self, bat): # getV stands for get voltage
         if self.adcFlag:
-            val0 = self.batteryValue(0)
-            val1 = self.batteryValue(4)
+            val0 = self.getA(0)
+            val1 = self.getA(4)
         else:
-            val0 = self.batteryValue(0)
-            val1 = self.batteryValue(1)
+            val0 = self.getA(0)
+            val1 = self.getA(1)
 
         battery1 = round(val0 / 255 * 5 * 3, 2)
         battery2 = round(val1 / 255 * 5 * 3, 2)
-        return battery1, battery2
+        if bat == 1:
+            return battery1
+        if bat == 2:
+            return battery2
+
+import unicornhat as unicorn
+
+# Initialize Unicorn HAT
+unicorn.clear()
+
+def scaleRGB(value):
+    # Normalize to the range [0, 1] where 7.2 maps to 0 and 8.2 maps to 1
+    normalized = (value - 7.2) / (8.2 - 7.2)
+    # Scale to 0-255 and convert to int
+    return int(round(normalized * 255))
+
+def scaleHeight(value):
+    # Normalize to the range [0, 1] where 7.2 maps to 0 and 8.2 maps to 1
+    normalized = (value - 7.2) / (8.2 - 7.2)
+    # Scale to 0-255 and convert to int
+    return int(round(normalized * 8))
+
+def display_battery(red1, green1, h1, red2, green2, h2):
+    # Clear the screen
+    unicorn.clear()
+
+    # Filling the battery (green bar inside the 8x16 grid)
+    bar1 = [
+        (x, y, red1, green1, 0) for y in range(0, 4) for x in range(0, h1)
+    ]
+
+    bar2 = [
+        (x, y, red2, green2, 0) for y in range(4, 8) for x in range(0, h2)
+    ]
+
+    # Set the pixels
+    for pixel in bar1:
+        unicorn.set_pixel(*pixel)
+
+    for pixel in bar2:
+        unicorn.set_pixel(*pixel)
 
 if __name__ == '__main__':
     adc = ADC()
     try:
         while True:
-            input_data = adc.batteryPower()
-            print(input_data)
+            bat1 = adc.getV(1)
+            bat2 = adc.getV(2)
+            
+            # Show the battery icon
+            display_battery(255 - scaleRGB(bat1), scaleRGB(bat1), scaleHeight(bat1), 255 - scaleRGB(bat2), scaleRGB(bat2), scaleHeight(bat2))
+            unicorn.show()
             time.sleep(0.1)
     except KeyboardInterrupt:
         adc.adc.close()
