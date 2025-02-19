@@ -29,7 +29,6 @@ pca1.frequency = 50  # MG996R operates at 50Hz
 pca2.frequency = 50
 
 # Initialize Unicorn HAT
-unicorn.set_layout(unicorn.HAT)
 unicorn.clear()
 
 # Servo pulse range
