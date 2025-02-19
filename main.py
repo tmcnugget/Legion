@@ -6,6 +6,8 @@ import busio
 from adafruit_pca9685 import PCA9685
 import unicornhat as unicorn
 
+bus = smbus.SMBus(1)
+
 def detect_i2c(addr):
     try:
         bus.write_byte(addr, 0)
@@ -288,7 +290,6 @@ l2j1 = l2j2 = l2j3 = 0
 l3j1 = l3j2 = l3j3 = 0
 l4j1 = l4j2 = l4j3 = 0
 
-bus = smbus.SMBus(1)
 step_len = 30
 step_h = 15
 cycle_t = 1.0
