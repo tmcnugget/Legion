@@ -1,10 +1,12 @@
 import math
 import time
 import smbus
+import sys
 from board import SCL, SDA
 import busio
 from adafruit_pca9685 import PCA9685
 import unicornhat as unicorn
+import scrollphat as scroll
 
 bus = smbus.SMBus(1)
 
@@ -30,6 +32,10 @@ pca2.frequency = 50
 
 # Initialize Unicorn HAT
 unicorn.clear()
+
+i = 0
+buf = [0] * 11
+scroll.set_brightness(20)
 
 # Servo pulse range
 MIN_PULSE = 500   # Min pulse width
@@ -75,6 +81,19 @@ def get_voltage(bat):
     battery2 = round(val1 / 255 * 5 * 3, 2)
 
     return battery1 if bat == 1 else battery2
+
+def scroll_sine():
+    for x in range(0, 11):
+        y = (math.sin((i + (x * 10)) / 10.0) + 1)  # Produces range from 0 to 2
+        y *= 2.5                                   # Scale to 0 to 5
+        buf[x] = 1 << int(y)
+
+    scroll.set_buffer(buf)
+    scroll.update()
+
+    time.sleep(0.005)
+
+    i += 1
 
 # Detect which ADC is available
 adc_flag = None
@@ -301,7 +320,9 @@ if __name__ == '__main__':
         while True:
             display_battery(255 - scaleRGB(get_voltage(1)), scaleRGB(get_voltage(1)), scaleHeight(get_voltage(1)), 255 - scaleRGB(get_voltage(2)), scaleRGB(get_voltage(2)), scaleHeight(get_voltage(2)))
             unicorn.show()
-            time.sleep(0.1)
+            scroll_sine()
     except KeyboardInterrupt:
         bus.close()
+        unicorn.clear
+        scroll.clear
         print("\nEnd of program")
