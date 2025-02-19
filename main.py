@@ -193,7 +193,7 @@ def jump():
     update_servos("FR", impact_angles)
     update_servos("BL", impact_angles)
     update_servos("BR", impact_angles)
-    timp.sleep(0.7)
+    time.sleep(0.7)
     update_servos("FL", return_angles)
     update_servos("FR", return_angles)
     update_servos("BL", return_angles)
