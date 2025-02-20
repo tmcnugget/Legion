@@ -123,19 +123,25 @@ def ik(x, y, z, L1=72, L2=87):
     dist = np.sqrt(x_proj**2 + y**2)  # Distance from hip to foot
     print(f"Projected x (x_proj): {x_proj}")
     print(f"Total distance (dist): {dist}")
-
+    
+    if dist == 0:
+        print("Foot position is at the hip! Invalid IK solution.")
+        return None
+    
     if dist > (L1 + L2):
         print(f"Target out of reach! Dist: {dist}, L1+L2: {L1 + L2}")
         return None
     
     # Law of Cosines to find knee angle (J3)
     cos_knee = (L1**2 + L2**2 - dist**2) / (2 * L1 * L2)
-    knee_angle = np.arccos(np.clip(cos_knee, -1, 1))
+    cos_knee = np.clip(cos_knee, -1, 1)  # Clamping to prevent invalid values
+    knee_angle = np.arccos(cos_knee)
     print(f"Knee angle calculation: cos_knee = {cos_knee}, knee_angle = {np.degrees(knee_angle)}°")
     
     # Law of Cosines for hip-lift angle (J2)
     cos_hip = (L1**2 + dist**2 - L2**2) / (2 * L1 * dist)
-    hip_angle = np.arccos(np.clip(cos_hip, -1, 1))
+    cos_hip = np.clip(cos_hip, -1, 1)  # Clamping to prevent invalid values
+    hip_angle = np.arccos(cos_hip)
     print(f"Hip angle calculation: cos_hip = {cos_hip}, hip_angle = {np.degrees(hip_angle)}°")
     
     # Hip joint rotation to reach (x, y)
