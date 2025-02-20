@@ -109,15 +109,10 @@ j1, j2, j3 = 90, 45, 90  # Default joint angles for (x, y, z) = (0, 0, 0)
 def ik(x, y, z, L1=72, L2=87):
     """
     Solve IK for a 3DOF quadruped leg in 3D (x, y, z space).
-    x, y, z: Desired foot position relative to the hip joint (assumed in cm).
+    x, y, z: Desired foot position relative to the hip joint (assumed in mm).
     L1, L2: Lengths of upper and lower leg segments in mm.
     """
     global j1, j2, j3
-
-    # Convert coordinates to mm
-    x *= 100
-    y *= 100
-    z *= 100
 
     # Base rotation (J1) to align with X-Z plane
     j1 = np.degrees(np.arctan2(z, x))  # Angle in X-Z plane
@@ -127,8 +122,8 @@ def ik(x, y, z, L1=72, L2=87):
     dist = np.sqrt(x_proj**2 + y**2)  # Distance from hip to foot
 
     # Check if the position is within reach
-    if dist == 0 or dist > (L1 + L2):
-        print(f"Target out of reach or invalid. dist={dist}, max reach={L1 + L2}")
+    if dist > (L1 + L2):
+        print(f"Target out of reach. dist={dist}, max reach={L1 + L2}")
         return None
 
     # Law of Cosines to find knee angle (J3)
@@ -145,7 +140,7 @@ def ik(x, y, z, L1=72, L2=87):
     theta_hip = np.arctan2(y, x_proj) - hip_angle
     theta_knee = np.pi - knee_angle  # Convert to servo-friendly angle
 
-    # Convert angles to 0-180 range
+    # Convert angles to degrees and ensure they are valid
     j2 = np.clip(np.degrees(theta_hip) + 90, 0, 180)  # Adjusted for downward leg
     j3 = np.clip(np.degrees(theta_knee), 0, 180)
 
