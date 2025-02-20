@@ -1,4 +1,4 @@
-import math
+import numpy as np
 import time
 import smbus
 import sys
@@ -102,28 +102,57 @@ if detect_i2c(0x4F):  # PCF8591 detected
 elif detect_i2c(0x48):  # ADS7830 detected
     adc_flag = True
 
-def ik(x, y, z, L1=72, L2=72):
-    """
-    Calculate the joint angles for a 3DOF quadruped leg.
-    """
-    theta_hip_rotation = math.atan2(y, x)
-    proj_x = math.sqrt(x**2 + y**2)
-    d = math.sqrt(proj_x**2 + z**2)
-    
-    if d > (L1 + L2):
-        raise ValueError("Target position out of reach")
-    
-    cos_knee = (L1**2 + L2**2 - d**2) / (2 * L1 * L2)
-    theta_knee = math.acos(cos_knee)
-    
-    cos_hip_lift = (L1**2 + d**2 - L2**2) / (2 * L1 * d)
-    theta_hip_lift = math.acos(cos_hip_lift) + math.atan2(z, proj_x)
+j1, j2, j3 = 90, 45, 90  # Default joint angles for (x, y, z) = (0, 0, 0)
 
-    theta_hip_rotation = max(0, min(180, theta_hip_rotation))
-    theta_hip_lift = max(0, min(180, theta_hip_lift))
-    theta_knee = max(0, min(180, theta_knee))
+def ik(x, y, z, L1=72, L2=87):
+    """
+    Solve IK for a 3DOF quadruped leg in 3D (x, y, z space).
+    x, y, z: Desired foot position relative to the hip joint.
+    L1, L2: Lengths of upper and lower leg segments.
+    """
+    global j1, j2, j3
     
-    return math.degrees(theta_hip_rotation), math.degrees(theta_hip_lift), math.degrees(theta_knee)
+    # Base rotation (J1) to align with X-Z plane
+    j1 = np.clip(np.degrees(np.arctan2(z, x)), 45, 135)  # Limit J1 between 45° and 135°
+    
+    # Projected distance in YZ plane
+    x_proj = np.sqrt(x**2 + z**2)  # Effective x when rotated
+    dist = np.sqrt(x_proj**2 + y**2)  # Distance from hip to foot
+    
+    if dist > (L1 + L2):
+        print("Target out of reach!")
+        return None
+    
+    # Law of Cosines to find knee angle (J3)
+    cos_knee = (L1**2 + L2**2 - dist**2) / (2 * L1 * L2)
+    knee_angle = np.arccos(np.clip(cos_knee, -1, 1))
+    
+    # Law of Cosines for hip-lift angle (J2)
+    cos_hip = (L1**2 + dist**2 - L2**2) / (2 * L1 * dist)
+    hip_angle = np.arccos(np.clip(cos_hip, -1, 1))
+    
+    # Hip joint rotation to reach (x, y)
+    theta_hip = np.arctan2(y, x_proj) - hip_angle
+    theta_knee = np.pi - knee_angle  # Convert to servo-friendly angle
+    
+    # Convert angles to 0-180 range
+    j2 = np.clip(np.degrees(theta_hip) + 90, 0, 180)  # Adjusted to make 90° point straight down
+    j3 = np.clip(np.degrees(theta_knee), 0, 180)
+    
+    return j1, j2, j3
+
+# Generate smooth semi-circle trajectory
+def smooth_traj(points, n_steps=10):
+    path = []
+    for i in range(len(points) - 1):
+        x1, y1, z1 = points[i]
+        x2, y2, z2 = points[i+1]
+        t = np.linspace(0, 1, n_steps)
+        x_interp = (1 - t) * x1 + t * x2
+        y_interp = (1 - np.cos(np.pi * t)) / 2 * (y2 - y1) + y1
+        z_interp = (1 - t) * z1 + t * z2
+        path.extend(zip(x_interp, y_interp, z_interp))
+    return path
 
 def read_mpu(bus, address=0x68):
     """
@@ -144,130 +173,12 @@ def read_mpu(bus, address=0x68):
         "gyro": (gyro_x, gyro_y, gyro_z)
     }
 
-def adjust_gait(mpu_data, x, y, z):
-    """
-    Adjust gait based on MPU6050 sensor data.
-    """
-    gyro_x, gyro_y, gyro_z = mpu_data["gyro"]
-    correction_x = gyro_x * 0.01  # Small correction factor
-    correction_y = gyro_y * 0.01
-    
-    return x + correction_x, y + correction_y, z
-
 def servo(channel, angle):
     pulse = angle_to_pulse(angle)
     if channel <= 15:
         pca1.channels[channel].duty_cycle = int((pulse / 20000) * 0xFFFF)
     else:
         pca2.channels[channel - 16].duty_cycle = int((pulse / 20000) * 0xFFFF)
-
-def update_servos(leg, angles):
-    """
-    Update the servo positions based on calculated angles.
-    """
-    global l1j1, l1j2, l1j3, l2j1, l2j2, l2j3, l3j1, l3j2, l3j3, l4j1, l4j2, l4j3
-    
-    if leg == "FL":
-        l1j1, l1j2, l1j3 = angles
-    elif leg == "FR":
-        l2j1, l2j2, l2j3 = angles
-    elif leg == "BL":
-        l3j1, l3j2, l3j3 = angles
-    elif leg == "BR":
-        l4j1, l4j2, l4j3 = angles
-
-    l1j1 = min(max(l1j1, 45), 135)
-    l2j1 = min(max(l2j1, 45), 135) 
-    l3j1 = min(max(l3j1, 45), 135) 
-    l4j1 = min(max(l4j1, 45), 135)
-
-    servo(15, l1j1)
-    servo(14, l1j2)
-    servo(13, l2j3)
-    servo(12, l2j1)
-    servo(11, l2j2)
-    servo(10, l2j3)
-    servo(9, l3j1)
-    servo(8, l3j2)
-    servo(31, l3j3)
-    servo(22, l4j1)
-    servo(23, l4j2)
-    servo(27, l4j3)
-
-def trot(step_len, step_h, cycle_t, bus):
-    """
-    Generate a simple trotting gait with MPU6050 balance correction.
-    """
-    time_step = cycle_t / 4
-    trot_pos = [
-        (step_len / 2, 0, -72),
-        (0, 0, -72 + step_h),
-        (-step_len / 2, 0, -72),
-        (0, 0, -72)
-    ]
-    
-    legs = ['FL', 'BR', 'FR', 'BL']
-    
-    for phase in range(4):
-        mpu_data = read_mpu(bus)
-        
-        for i, leg in enumerate(legs):
-            if (phase % 2 == 0 and i % 2 == 0) or (phase % 2 == 1 and i % 2 == 1):
-                x, y, z = trot_pos[phase]
-                x, y, z = adjust_gait(mpu_data, x, y, z)
-                angles = ik(x, y, z)
-                update_servos(leg, angles)
-                print(f"{leg} -> Hip Rotation: {angles[0]:.2f}, Hip Lift: {angles[1]:.2f}, Knee: {angles[2]:.2f}")
-        time.sleep(time_step)
-        
-def sit():
-    """
-    Move the quadruped into a sitting position by lowering the back legs 
-    while keeping the front legs more extended.
-    """
-    # Front legs more upright
-    front_leg_angles = ik(0, 0, -60)  # Adjust z for desired upright posture
-    update_servos("FL", front_leg_angles)
-    update_servos("FR", front_leg_angles)
-    
-    # Back legs bent to simulate sitting
-    back_leg_angles = ik(0, 0, -30)  # Adjust z for a more bent position
-    update_servos("BL", back_leg_angles)
-    update_servos("BR", back_leg_angles)
-
-    print("Quadruped is now sitting.")
-
-def jump():
-    crouch_angles = ik(0, 0, -60)
-    jump_angles = ik(0, 0, 60)
-    brace_angles = ik(0, 0, 1)
-    impact_angles = ik(0, 0, -30)
-    return_angles = ik(0, 0, 1)
-    
-    update_servos("FL", crouch_angles)
-    update_servos("FR", crouch_angles)
-    update_servos("BL", crouch_angles)
-    update_servos("BR", crouch_angles)
-    time.sleep(0.3)
-    update_servos("FL", jump_angles)
-    update_servos("FR", jump_angles)
-    update_servos("BL", jump_angles)
-    update_servos("BR", jump_angles)
-    time.sleep(0.1)
-    update_servos("FL", brace_angles)
-    update_servos("FR", brace_angles)
-    update_servos("BL", brace_angles)
-    update_servos("BR", brace_angles)
-    time.sleep(0.2)
-    update_servos("FL", impact_angles)
-    update_servos("FR", impact_angles)
-    update_servos("BL", impact_angles)
-    update_servos("BR", impact_angles)
-    time.sleep(0.7)
-    update_servos("FL", return_angles)
-    update_servos("FR", return_angles)
-    update_servos("BL", return_angles)
-    update_servos("BR", return_angles)
 
 def scaleRGB(value):
     # Normalize to the range [0, 1] where 7.2 maps to 0 and 8.2 maps to 1
@@ -301,6 +212,45 @@ def display_battery(red1, green1, h1, red2, green2, h2):
     for pixel in bar2:
         unicorn.set_pixel(*pixel)
 
+# Trot gait using semi-circle trajectory
+def trot_leg(leg, n_steps=10):
+    trajectory = [(0, 0, 0), (1, 1, 1), (2, 0, 2), (0, 0, 0)]
+    smooth_path = smooth_traj(trajectory, n_steps)
+    
+    for x, y, z in smooth_path:
+        angles = ik(x, y, z)
+        if angles:
+            j1, j2, j3 = angles
+            print(f"Foot Pos: ({x:.1f}, {y:.1f}, {z:.1f}) -> J1: {j1:.1f}°, J2: {j2:.1f}°, J3: {j3:.1f}°")
+            globals()[f"l{leg}j1"] = j1
+            globals()[f"l{leg}j2"] = j2
+            globals()[f"l{leg}j3"] = j3
+
+            if leg == 1:
+                servo(15, l1j1)
+                servo(14, l1j2)
+                servo(13, l1j3)
+            if leg == 2:
+                servo(12, l2j1)
+                servo(11, l2j2)
+                servo(10, l2j3)
+            if leg == 3:
+                servo(9, l3j1)
+                servo(8, l3j2)
+                servo(31, l3j3)
+            if leg == 4:
+                servo(22, l4j1)
+                servo(23, l4j2)
+                servo(27, l4j3)
+
+def trot(wait=1.5, res=10):
+    trot_leg(1, res)
+    trot_leg(4, res)
+    time.sleep(wait)
+    trot_leg(2, res)
+    trot_leg(3, res)
+    time.sleep(wait)
+
 # Define servo positions
 global l1j1, l1j2, l1j3, l2j1, l2j2, l2j3, l3j1, l3j2, l3j3, l4j1, l4j2, l4j3
 l1j1 = l1j2 = l1j3 = 0
@@ -308,19 +258,13 @@ l2j1 = l2j2 = l2j3 = 0
 l3j1 = l3j2 = l3j3 = 0
 l4j1 = l4j2 = l4j3 = 0
 
-step_len = 30
-step_h = 15
-cycle_t = 1.0
-
 if __name__ == '__main__':
     try:
-        # trot(step_len, step_h, cycle_t, bus)
-        sit()
-        jump()
         while True:
             display_battery(255 - scaleRGB(get_voltage(1)), scaleRGB(get_voltage(1)), scaleHeight(get_voltage(1)), 255 - scaleRGB(get_voltage(2)), scaleRGB(get_voltage(2)), scaleHeight(get_voltage(2)))
             unicorn.show()
             scroll_sine()
+            trot()
     except KeyboardInterrupt:
         bus.close()
         unicorn.clear
