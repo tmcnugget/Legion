@@ -146,18 +146,26 @@ def ik(x, y, z, L1=72, L2=87):
 
     return j1, j2, j3
 
-# Generate smooth semi-circle trajectory
-def smooth_traj(points, n_steps=10):
+def square_traj(side_length=50, height=20, n_steps=10):
+    """ Generates a square path in the XZ plane at a fixed height (Y) """
     path = []
+    points = [
+        (side_length, height, 0),   # Front Right
+        (side_length, height, side_length),  # Back Right
+        (0, height, side_length),   # Back Left
+        (0, height, 0),   # Front Left
+        (side_length, height, 0)    # Close the loop
+    ]
+
     for i in range(len(points) - 1):
-        p1 = np.array(points[i])
-        p2 = np.array(points[i+1])
+        x1, y1, z1 = points[i]
+        x2, y2, z2 = points[i+1]
         t = np.linspace(0, 1, n_steps)
-        
-        # Interpolate smoothly for all coordinates
-        interp_points = np.outer(1 - t, p1) + np.outer(t, p2)
-        
-        path.extend(interp_points)
+        x_interp = (1 - t) * x1 + t * x2
+        z_interp = (1 - t) * z1 + t * z2
+        y_interp = np.full_like(t, height)  # Keep Y constant
+        path.extend(zip(x_interp, y_interp, z_interp))
+    
     return path
 
 def read_mpu(bus, address=0x68):
@@ -220,14 +228,14 @@ def display_battery(red1, green1, h1, red2, green2, h2):
 
 # Trot gait using semi-circle trajectory
 def trot_leg(leg, n_steps=10):
-    trajectory = [(0, 0, 0), (1, 1, 1), (2, 0, 2), (0, 0, 0)]
-    smooth_path = smooth_traj(trajectory, n_steps)
+    trajectory = square_traj(side_length=50, height=20, n_steps=n_steps)
     
-    for x, y, z in smooth_path:
+    for x, y, z in trajectory:
         angles = ik(x, y, z)
         if angles:
             j1, j2, j3 = angles
             print(f"Foot Pos: ({x:.1f}, {y:.1f}, {z:.1f}) -> J1: {j1:.1f}°, J2: {j2:.1f}°, J3: {j3:.1f}°")
+
             globals()[f"l{leg}j1"] = j1
             globals()[f"l{leg}j2"] = j2
             globals()[f"l{leg}j3"] = j3
