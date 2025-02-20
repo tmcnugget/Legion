@@ -1,3 +1,4 @@
+import math
 from board import SCL, SDA
 import busio
 from adafruit_pca9685 import PCA9685
@@ -55,8 +56,8 @@ def servo(channel, angle):
 # Function to set all servos to a user-defined angle
 def set_servos():
     while True:
-          input = float(input("Enter Z height "))
-          angles = ik(input)
+          in = float(input("Enter Z height "))
+          angles = ik(in)
           j1 = angles[0]
           j2 = angles[1]
           servo(14, j1)
