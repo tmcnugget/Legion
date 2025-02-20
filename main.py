@@ -116,30 +116,38 @@ def ik(x, y, z, L1=72, L2=87):
     
     # Base rotation (J1) to align with X-Z plane
     j1 = np.clip(np.degrees(np.arctan2(z, x)), 45, 135)  # Limit J1 between 45° and 135°
+    print(f"J1 calculation: atan2(z, x) = atan2({z}, {x}) -> J1 = {j1}°")
     
     # Projected distance in YZ plane
     x_proj = np.sqrt(x**2 + z**2)  # Effective x when rotated
     dist = np.sqrt(x_proj**2 + y**2)  # Distance from hip to foot
-    
+    print(f"Projected x (x_proj): {x_proj}")
+    print(f"Total distance (dist): {dist}")
+
     if dist > (L1 + L2):
-        print("Target out of reach!")
+        print(f"Target out of reach! Dist: {dist}, L1+L2: {L1 + L2}")
         return None
     
     # Law of Cosines to find knee angle (J3)
     cos_knee = (L1**2 + L2**2 - dist**2) / (2 * L1 * L2)
     knee_angle = np.arccos(np.clip(cos_knee, -1, 1))
+    print(f"Knee angle calculation: cos_knee = {cos_knee}, knee_angle = {np.degrees(knee_angle)}°")
     
     # Law of Cosines for hip-lift angle (J2)
     cos_hip = (L1**2 + dist**2 - L2**2) / (2 * L1 * dist)
     hip_angle = np.arccos(np.clip(cos_hip, -1, 1))
+    print(f"Hip angle calculation: cos_hip = {cos_hip}, hip_angle = {np.degrees(hip_angle)}°")
     
     # Hip joint rotation to reach (x, y)
     theta_hip = np.arctan2(y, x_proj) - hip_angle
     theta_knee = np.pi - knee_angle  # Convert to servo-friendly angle
+    print(f"Theta hip: {np.degrees(theta_hip)}°, Theta knee: {np.degrees(theta_knee)}°")
     
     # Convert angles to 0-180 range
     j2 = np.clip(np.degrees(theta_hip) + 90, 0, 180)  # Adjusted to make 90° point straight down
     j3 = np.clip(np.degrees(theta_knee), 0, 180)
+    
+    print(f"Final joint angles -> J2: {j2}°, J3: {j3}°")
     
     return j1, j2, j3
 
@@ -245,7 +253,7 @@ def trot_leg(leg, n_steps=10):
                 servo(23, l4j2)
                 servo(27, l4j3)
 
-def trot(wait=1.5, res=10):
+def trot(wait=0.5, res=10):
     trot_leg(1, res)
     trot_leg(4, res)
     time.sleep(wait)
