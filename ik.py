@@ -48,16 +48,16 @@ def ik(Z):
 
 def servo(channel, angle):
     pulse = angle_to_pulse(angle)
-    if channel > 15:
+    if channel < 16:
         pca1.channels[channel].duty_cycle = int((pulse / 20000) * 0xFFFF)
-    elif channel < 32 :
+    else:
         pca2.channels[channel - 16].duty_cycle = int((pulse / 20000) * 0xFFFF)
 
 # Function to set all servos to a user-defined angle
 def set_servos():
     while True:
-          in = float(input("Enter Z height "))
-          angles = ik(in)
+          usr_input = float(input("Enter Z height "))
+          angles = ik(usr_input)
           j1 = angles[0]
           j2 = angles[1]
           servo(14, j1)
