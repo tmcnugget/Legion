@@ -34,8 +34,6 @@ pca2.frequency = 50
 # Initialize Unicorn HAT
 unicorn.clear()
 
-i = 0
-buf = [0] * 11
 scroll.set_brightness(20)
 
 # Servo pulse range
@@ -84,6 +82,9 @@ def get_voltage(bat):
     return battery1 if bat == 1 else battery2
 
 def scroll_sine():
+    i = 0
+    buf = [0] * 11
+    
     for x in range(0, 11):
         y = (math.sin((i + (x * 10)) / 10.0) + 1)  # Produces range from 0 to 2
         y *= 2.5                                   # Scale to 0 to 5
