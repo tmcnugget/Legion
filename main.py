@@ -109,52 +109,46 @@ j1, j2, j3 = 90, 45, 90  # Default joint angles for (x, y, z) = (0, 0, 0)
 def ik(x, y, z, L1=72, L2=87):
     """
     Solve IK for a 3DOF quadruped leg in 3D (x, y, z space).
-    x, y, z: Desired foot position relative to the hip joint.
-    L1, L2: Lengths of upper and lower leg segments.
+    x, y, z: Desired foot position relative to the hip joint (assumed in cm).
+    L1, L2: Lengths of upper and lower leg segments in mm.
     """
     global j1, j2, j3
-    
+
+    # Convert coordinates to mm
+    x *= 100
+    y *= 100
+    z *= 100
+
     # Base rotation (J1) to align with X-Z plane
     j1 = np.degrees(np.arctan2(z, x))  # Angle in X-Z plane
-    print(f"J1 calculation: atan2(z, x) = atan2({z}, {x}) -> J1 = {j1}°")
-    
+
     # Projected distance in YZ plane
     x_proj = np.sqrt(x**2 + z**2)  # Effective x when rotated
     dist = np.sqrt(x_proj**2 + y**2)  # Distance from hip to foot
-    print(f"Projected x (x_proj): {x_proj}")
-    print(f"Total distance (dist): {dist}")
-    
+
     # Check if the position is within reach
-    if dist == 0:
-        print("Foot position is at the hip! Invalid IK solution.")
+    if dist == 0 or dist > (L1 + L2):
+        print(f"Target out of reach or invalid. dist={dist}, max reach={L1 + L2}")
         return None
-    if dist > (L1 + L2):  # Maximum reach is the sum of both leg segments
-        print(f"Target out of reach! Dist: {dist}, L1+L2: {L1 + L2}")
-        return None
-    
+
     # Law of Cosines to find knee angle (J3)
     cos_knee = (L1**2 + L2**2 - dist**2) / (2 * L1 * L2)
     cos_knee = np.clip(cos_knee, -1, 1)  # Clamping to prevent invalid values
     knee_angle = np.arccos(cos_knee)
-    print(f"Knee angle calculation: cos_knee = {cos_knee}, knee_angle = {np.degrees(knee_angle)}°")
-    
+
     # Law of Cosines for hip-lift angle (J2)
     cos_hip = (L1**2 + dist**2 - L2**2) / (2 * L1 * dist)
-    cos_hip = np.clip(cos_hip, -1, 1)  # Clamping to prevent invalid values
+    cos_hip = np.clip(cos_hip, -1, 1)
     hip_angle = np.arccos(cos_hip)
-    print(f"Hip angle calculation: cos_hip = {cos_hip}, hip_angle = {np.degrees(hip_angle)}°")
-    
+
     # Hip joint rotation to reach (x, y)
     theta_hip = np.arctan2(y, x_proj) - hip_angle
     theta_knee = np.pi - knee_angle  # Convert to servo-friendly angle
-    print(f"Theta hip: {np.degrees(theta_hip)}°, Theta knee: {np.degrees(theta_knee)}°")
-    
+
     # Convert angles to 0-180 range
-    j2 = np.clip(np.degrees(theta_hip) + 90, 0, 180)  # Adjusted to make 90° point straight down
+    j2 = np.clip(np.degrees(theta_hip) + 90, 0, 180)  # Adjusted for downward leg
     j3 = np.clip(np.degrees(theta_knee), 0, 180)
-    
-    print(f"Final joint angles -> J2: {j2}°, J3: {j3}°")
-    
+
     return j1, j2, j3
 
 # Generate smooth semi-circle trajectory
