@@ -147,26 +147,27 @@ def ik(x, y, z, L1=72, L2=87):
     return j1, j2, j3
 
 def square_traj(side_length=50, height=20, n_steps=10):
-    """ Generates a square path in the XZ plane at a fixed height (Y) """
+    """ Generates a square path in the XY plane at a fixed height (Z) """
     path = []
     points = [
-        (side_length, height, 0),   # Front Right
-        (side_length, height, side_length),  # Back Right
-        (0, height, side_length),   # Back Left
-        (0, height, 0),   # Front Left
-        (side_length, height, 0)    # Close the loop
+        (side_length, 0, height),   # Front Right
+        (side_length, side_length, height),  # Back Right
+        (0, side_length, height),   # Back Left
+        (0, 0, height),   # Front Left
+        (side_length, 0, height)    # Close the loop
     ]
 
     for i in range(len(points) - 1):
-        x1, y1, z1 = points[i]
+        x1, y1, z1 = points[i]   # Old (x, y, z)
         x2, y2, z2 = points[i+1]
         t = np.linspace(0, 1, n_steps)
         x_interp = (1 - t) * x1 + t * x2
-        z_interp = (1 - t) * z1 + t * z2
-        y_interp = np.full_like(t, height)  # Keep Y constant
+        y_interp = (1 - t) * y1 + t * z2  # Swap Z → Y
+        z_interp = np.full_like(t, height)  # Keep Z constant (was Y)
         path.extend(zip(x_interp, y_interp, z_interp))
     
     return path
+
 
 def read_mpu(bus, address=0x68):
     """
