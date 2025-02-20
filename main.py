@@ -150,13 +150,14 @@ def ik(x, y, z, L1=72, L2=87):
 def smooth_traj(points, n_steps=10):
     path = []
     for i in range(len(points) - 1):
-        x1, y1, z1 = points[i]
-        x2, y2, z2 = points[i+1]
+        p1 = np.array(points[i])
+        p2 = np.array(points[i+1])
         t = np.linspace(0, 1, n_steps)
-        x_interp = (1 - t) * x1 + t * x2
-        y_interp = (1 - np.cos(np.pi * t)) / 2 * (y2 - y1) + y1
-        z_interp = (1 - t) * z1 + t * z2
-        path.extend(zip(x_interp, y_interp, z_interp))
+        
+        # Interpolate smoothly for all coordinates
+        interp_points = np.outer(1 - t, p1) + np.outer(t, p2)
+        
+        path.extend(interp_points)
     return path
 
 def read_mpu(bus, address=0x68):
