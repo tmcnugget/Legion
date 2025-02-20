@@ -115,7 +115,7 @@ def ik(x, y, z, L1=72, L2=87):
     global j1, j2, j3
     
     # Base rotation (J1) to align with X-Z plane
-    j1 = np.clip(np.degrees(np.arctan2(z, x)), 45, 135)  # Limit J1 between 45° and 135°
+    j1 = np.degrees(np.arctan2(z, x))  # Angle in X-Z plane
     print(f"J1 calculation: atan2(z, x) = atan2({z}, {x}) -> J1 = {j1}°")
     
     # Projected distance in YZ plane
@@ -124,11 +124,11 @@ def ik(x, y, z, L1=72, L2=87):
     print(f"Projected x (x_proj): {x_proj}")
     print(f"Total distance (dist): {dist}")
     
+    # Check if the position is within reach
     if dist == 0:
         print("Foot position is at the hip! Invalid IK solution.")
         return None
-    
-    if dist > (L1 + L2):
+    if dist > (L1 + L2):  # Maximum reach is the sum of both leg segments
         print(f"Target out of reach! Dist: {dist}, L1+L2: {L1 + L2}")
         return None
     
