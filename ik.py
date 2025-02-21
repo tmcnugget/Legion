@@ -10,7 +10,7 @@ kit2 = ServoKit(channels=16, address=0x41)
 ANGLE_MIN = 0
 ANGLE_MAX = 180
 
-def set_servo(kit, channel, angle):
+def set_servo_angle(kit, channel, angle):
     """Set servo to a specific angle, ensuring it stays within bounds."""
     angle = max(ANGLE_MIN, min(ANGLE_MAX, angle))
     if kit == 1: 
