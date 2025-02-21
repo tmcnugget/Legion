@@ -10,7 +10,7 @@ kit2 = ServoKit(channels=16, address=0x41)
 ANGLE_MIN = 0
 ANGLE_MAX = 180
 
-def set_servo_angle(kit, channel, angle):
+def set_servo(kit, channel, angle):
     """Set servo to a specific angle, ensuring it stays within bounds."""
     angle = max(ANGLE_MIN, min(ANGLE_MAX, angle))
     if kit == 1: 
@@ -37,27 +37,6 @@ def pwm(v1, v2, v3, leg):
         set_servo_angle(2, 5, v2)
         set_servo_angle(2, 11, v3)
 
-def ik(x, y, z, L1, L2):
-    """Inverse kinematics calculations."""
-    theta1 = math.degrees(math.atan2(y, x)) + 90
-    theta1 = max(45, min(135, theta1))
-    
-    r = math.sqrt(x**2 + y**2)
-    h = z
-    d = math.sqrt(r**2 + h**2)
-    
-    cos_theta3 = (L1**2 + L2**2 - d**2) / (2 * L1 * L2)
-    if abs(cos_theta3) > 1:
-        raise ValueError("Target is out of reach")
-    theta3 = math.degrees(math.acos(cos_theta3))
-    
-    cos_theta2 = (L1**2 + d**2 - L2**2) / (2 * L1 * d)
-    if abs(cos_theta2) > 1:
-        raise ValueError("Target is out of reach")
-    theta2 = math.degrees(math.atan2(h, r) + math.acos(cos_theta2))
-    
-    return theta1, theta2, theta3
-
 def servo(inleg, j1, j2, j3):
     """Map leg numbers and apply angles."""
     leg_mapping = {
@@ -66,7 +45,7 @@ def servo(inleg, j1, j2, j3):
         21: (2, 1), 23: (2, 3), 24: (2, 4),
         31: (3, 1), 32: (3, 2), 34: (3, 4),
         41: (4, 1), 42: (4, 2), 43: (4, 3),
-        44: (4, 4)
+        44: (4, 4), 1234: (1, 2, 3, 4)
     }
     outleg = leg_mapping.get(inleg, (72,))
     print(f"Setting leg(s): {outleg} to J1: {j1}, J2: {j2}, J3: {j3}")
@@ -75,27 +54,11 @@ def servo(inleg, j1, j2, j3):
     if 3 in outleg: pwm(j1, j2, j3, 3)
     if 4 in outleg: pwm(j1, j2, j3, 4)
 
-def trot(length, height, rest):
-    """Simple trot gait sequence."""
-    trot_sequence = [
-        (14, 0, 0, ((L1 + L2) / 2) + height),
-        (14, 0, 0, (L1 + L2) / 2),
-        (14, length, 0, ((L1 + L2) / 2) + height),
-        (14, length, 0, (L1 + L2) / 2),
-        (23, 0, 0, ((L1 + L2) / 2) + height),
-        (23, 0, 0, (L1 + L2) / 2),
-        (23, length, 0, ((L1 + L2) / 2) + height),
-        (23, length, 0, (L1 + L2) / 2)
-    ]
-
-    for leg, x, y, z in trot_sequence:
-        angles = ik(x, y, z, L1, L2)
-        j1, j2, j3 = angles
-        servo(leg, j1, j2, j3)
-        time.sleep(rest)
+def sit():
+    servo(1234, 90, 45, 0)
 
 # Example usage
 L1 = 72  # Upper leg length (mm)
 L2 = 115  # Lower leg length (mm)
 
-trot(40, 40, 0.2) 
+sit()
